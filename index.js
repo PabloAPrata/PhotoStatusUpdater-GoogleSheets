@@ -3,20 +3,15 @@ const path = require('path');
 const process = require('process');
 const { authenticate } = require('@google-cloud/local-auth');
 const { google } = require('googleapis');
+const axios = require('axios');
 
-// If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
-// The file token.json stores the user's access and refresh tokens, and is
-// created automatically when the authorization flow completes for the first
-// time.
 const TOKEN_PATH = path.join(process.cwd(), 'token.json');
 const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
 
-/**
- * Reads previously authorized credentials from the save file.
- *
- * @return {Promise<OAuth2Client|null>}
- */
+let data = [];
+
+
 async function loadSavedCredentialsIfExist() {
     try {
         const content = await fs.readFile(TOKEN_PATH);
@@ -27,12 +22,6 @@ async function loadSavedCredentialsIfExist() {
     }
 }
 
-/**
- * Serializes credentials to a file comptible with GoogleAUth.fromJSON.
- *
- * @param {OAuth2Client} client
- * @return {Promise<void>}
- */
 async function saveCredentials(client) {
     const content = await fs.readFile(CREDENTIALS_PATH);
     const keys = JSON.parse(content);
@@ -46,10 +35,6 @@ async function saveCredentials(client) {
     await fs.writeFile(TOKEN_PATH, payload);
 }
 
-/**
- * Load or request or authorization to call APIs.
- *
- */
 async function authorize() {
     let client = await loadSavedCredentialsIfExist();
     if (client) {
@@ -65,28 +50,45 @@ async function authorize() {
     return client;
 }
 
-/**
- * Prints the names and majors of students in a sample spreadsheet:
- * @see https://docs.google.com/spreadsheets/d/1Fnpm1-0l90Sl6EpjLR9dBYTPXcaVywCEmEaW3nQftck/edit
- * @param {google.auth.OAuth2} auth The authenticated Google OAuth client.
- */
-async function listData(auth) {
+
+async function pullData(auth) {
     const sheets = google.sheets({ version: 'v4', auth });
+
     const res = await sheets.spreadsheets.values.get({
         spreadsheetId: '1Fnpm1-0l90Sl6EpjLR9dBYTPXcaVywCEmEaW3nQftck',
-        range: 'A1:G4',
+        range: 'A2:D70',
     });
-    const rows = res.data.values;
-    if (!rows || rows.length === 0) {
-        console.log('No data found.');
+    data = res.data.values;
+
+    if (!data || data.length === 0) {
+        console.log('Não foram encontrados dados.')
         return;
     }
 
-    rows.forEach((row) => {
-        // Print columns A and E, which correspond to indices 0 and 4.
-        // console.log(`${row[0]}, ${row[4]}`);
-        console.log(row);
+    console.log(data[0])
+}
+
+async function updateField(auth, text) {
+
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    await sheets.spreadsheets.values.update({
+        spreadsheetId: '1Fnpm1-0l90Sl6EpjLR9dBYTPXcaVywCEmEaW3nQftck',
+        range: 'A70',
+        valueInputOption: 'RAW',
+        resource: {
+            values: [[text]],
+        },
     });
 }
 
-authorize().then(listData).catch(console.error);
+
+
+async function main(auth) {
+    const text = "Pablo";
+
+    pullData(auth);
+    // updateField(auth, text);
+}
+
+authorize().then(main).catch(console.error);
