@@ -52,6 +52,7 @@ async function authorize() {
 
 
 async function pullData(auth) {
+    console.log("Puxando a tabela...");
     const sheets = google.sheets({ version: 'v4', auth });
 
     const res = await sheets.spreadsheets.values.get({
@@ -65,7 +66,7 @@ async function pullData(auth) {
         return;
     }
 
-    console.log(data[0])
+
 }
 
 async function updateField(auth, text) {
@@ -82,13 +83,49 @@ async function updateField(auth, text) {
     });
 }
 
+async function getJobStatus(job_ID) {
+    // curl -X GET -H "Content-Type: application/json" "http://localhost:8000/jobs/b227783c-79a7-413b-8177-2444d4b0ebfc"
+    const url = `http://localhost:8000/jobs/${job_ID}`
+    axios.get(url, {
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+
+    .then(response => {
+
+    })
+    .catch(error => {
+        console.error('Erro na requisição:', error.message);
+    })
+}
 
 
 async function main(auth) {
     const text = "Pablo";
 
-    pullData(auth);
-    // updateField(auth, text);
+
+    let interval = setInterval(()=>{
+        pullData(auth).then(() => {
+            console.log("Concluído!");
+    
+            data.forEach(linha => {
+       
+                const parte = linha[0];
+                const status = linha[1];
+                const job_ID = linha[3];
+    
+                console.log(`\tParte: ${parte}\n status: ${status}\n JobID: ${job_ID}`);
+    
+    
+            });
+
+            
+        });
+    }, 300000)
+
+    
+
 }
 
 authorize().then(main).catch(console.error);
